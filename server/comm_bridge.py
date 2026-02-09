@@ -8,48 +8,74 @@ load_dotenv()
 
 MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
 MQTT_PORT   = int(os.getenv("MQTT_PORT", 0))
-TOPIC_SENSOR = "sensor/data"
+TOPIC_MODE = "fsr/mode"
+TOPIC_FINGER = 'fsr/finger'
 TOPIC_MOTOR  = "motor/command"
 
-def on_message(client, userdata, message):
-    try:
-        # decode sensor data
-        # sensor_val = int(message.payload.decode())
-        # print(f"sensor value received: {sensor_val}")
+system_active = False
+last_finger_state = None
 
-        # run core logic
-        # if sensor_val > 50:
-        #     target_pos = 3000
-        # else:
-        #     target_pos = 0
+def send_motor_command(client, m1_position, m2_position):
+    payload1 = {"id": 1, "position": m1_position}
+    client.publish(TOPIC_MOTOR, json.dumps(payload1))
+    
+    payload2 = {"id": 2, "position": m2_position}
+    client.publish(TOPIC_MOTOR, json.dumps(payload2))
+    
+    print(f"setting positions: motor 1: {m1_position}, motor 2: {m2_position}")
 
-        # send motor command
-        client.publish(TOPIC_MOTOR, str(target_pos))
-        print(f"command send to motor: {target_pos}")
+def on_message(client, userdata, msg):
+    global system_active, last_finger_state
+    payload = msg.payload.decode()
+    
+    # activate/deactivate
+    if msg.topic == TOPIC_MODE:
+        if payload == "1":
+            system_active = True
+            print("SYSTEM ACTIVATED")
+        else:
+            system_active = False
+            last_finger_state = None
+            print("SYSTEM DEACTIVATED")
+            
+    # move finger
+    elif msg.topic == TOPIC_FINGER:
+        if system_active:
+            # only send motor command if the state changed
+            if payload != last_finger_state:
+                if payload == "close":
+                    send_motor_command(client, -1000, 7000)
+                elif payload == "open":
+                    send_motor_command(client, -1000, 3000)
 
-    except ValueError:
-        pass
+                last_finger_state = payload
+                print(f"state Changed to: {payload}")
 
 client = mqtt.Client()
 client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
-# client.on_message = on_message
-# client.subscribe(TOPIC_SENSOR)
+client.on_message = on_message
+client.subscribe([(TOPIC_MODE, 0), (TOPIC_FINGER, 0)])
 
-# print("Started... listening for sensors")
-# client.loop_forever()
+print("Connected to MQTT")
+print("Started... listening for sensors")
 
-while True:
-    # testing by hardcoding
-    target_id = 2
-    target_pos = 1000
+try:
+    client.loop_forever()
+except KeyboardInterrupt:
+    print("\nStopping...")
 
-    payload = {
-        "id": target_id,
-        "position": target_pos
-    }
+# while True:
+#     # testing by hardcoding
+#     target_id = 1
+#     target_pos = 0
+
+#     payload = {
+#         "id": target_id,
+#         "position": target_pos
+#     }
     
-    client.publish(TOPIC_MOTOR, json.dumps(payload))
-    print(f"Sent: {payload}")
+#     client.publish(TOPIC_MOTOR, json.dumps(payload))
+#     print(f"Sent: {payload}")
     
-    time.sleep(3.0)
+#     time.sleep(3.0)

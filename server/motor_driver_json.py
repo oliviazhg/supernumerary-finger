@@ -13,8 +13,8 @@ MQTT_PORT   = int(os.getenv("MQTT_PORT", 0))
 MQTT_TOPIC = "motor/command"
 
 # motor config
-DXL_ID_1 = 1           # Left Motor?
-DXL_ID_2 = 2           # Right Motor?
+DXL_ID_1 = 1 # in/out (-1000 - 500)
+DXL_ID_2 = 2 # finger bend (2000 - 8000)
 BAUDRATE = 1000000
 DEVICENAME = 'COM3' # /dev/ttyUSB0 on Pi
 PROTOCOL_VERSION = 2.0
@@ -97,26 +97,34 @@ def on_message(client, userdata, msg):
 
         # define physical bounds
         if target_id == 1:
-            print('motor 1 found')
-            if target_position < -1000:
-                target_position = -1000
-            if target_position > 500: 
-                target_position = 500
+            if target_position < -1000: target_position = -1000
+            if target_position > 500: target_position = 500
+        if target_id == 2:
+            if target_position < 2000: target_position = 2000
+            if target_position > 8000: target_position = 8000
 
         move_motor(target_id, target_position)
+        
+        # delay to let the bus stabilize
+        # time.sleep(0.01)
 
-        time.sleep(2.0) 
-        dxl_present_position, _, _ = packetHandler.read4ByteTxRx(portHandler, target_id, ADDR_PRESENT_POSITION)
-        real_position = get_signed_position(dxl_present_position)
-        print(f"[motor id:{target_id}] reached: {real_position}")
+        dxl_present_position, dxl_comm_result, dxl_error = packetHandler.read4ByteTxRx(portHandler, target_id, ADDR_PRESENT_POSITION)
+        
+        if dxl_comm_result != COMM_SUCCESS:
+            print(f"[WARNING] Read Failed ID {target_id}: {packetHandler.getTxRxResult(dxl_comm_result)}")
+        elif dxl_error != 0:
+            print(f"[CRITICAL] Hardware Error ID {target_id}: {packetHandler.getRxPacketError(dxl_error)}")
+            print("Action: Please check if motor is stalled or overheated.")
+        else:
+            # print current position if success
+            # real_position = get_signed_position(dxl_present_position)
+            # print(f"[SUCCESS] ID {target_id} at {real_position}")
+            pass
 
-    except json.JSONDecodeError:
-        print("Error: Message was not valid JSON")
-    except KeyError:
-        print("Error: JSON missing 'id' or 'val' keys")
-    except ValueError:
-        print("Error: Invalid number format")
-
+    except Exception as e:
+        # prevents "list index out of range" crash
+        print(f"[ERROR] Logic skipped: {e}")
+        
 if __name__ == "__main__":
     setup_motors()
 
