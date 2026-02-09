@@ -1,0 +1,3 @@
+[submodule "pyomyo"]
+	path = pyomyo
+	url = https://github.com/PerlinWarp/pyomyo.git
