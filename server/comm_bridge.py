@@ -33,7 +33,7 @@ def on_message(client, userdata, msg):
 
     if msg.topic == TOPIC_SYS_MODE:
         current_mode = payload
-        print(f"current mode changed to: {current_mode}")
+        print(f"[FSR] current mode changed to: {current_mode}")
         return
 
     # activate/deactivate

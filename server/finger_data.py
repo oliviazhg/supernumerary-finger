@@ -48,7 +48,12 @@ async def handle_connection(websocket):
     async def receive_commands():
         try:
             async for message in websocket:
-                command = json.loads(message)
+                try:
+                    command = json.loads(message)
+                except json.JSONDecodeError:
+                    print("Received invalid JSON.")
+                    continue 
+
                 if command.get("type") == "control":
                     motor_id = command.get("motor")
                     action = command.get("action")
@@ -62,6 +67,7 @@ async def handle_connection(websocket):
                             target_pos = 500 if direction == "forward" else -1000
                         elif motor_id == 2:
                             target_pos = 8000 if direction == "forward" else 2000
+
                         mqtt_payload = {
                             "id": motor_id, 
                             "mode": "move", 
@@ -77,8 +83,9 @@ async def handle_connection(websocket):
                         }
                         print(f"-> MQTT: Motor {motor_id} STOP")
 
-                    # Publish to Motor Driver
-                    mqtt_client.publish(MQTT_TOPIC, json.dumps(mqtt_payload))
+                    if mqtt_payload:
+                        mqtt_client.publish(MQTT_TOPIC, json.dumps(mqtt_payload))
+
                 elif command.get("type") == "set_mode":
                     new_mode = command.get("mode")
                     print(f"Control mode changed to: {new_mode}")
