@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Stage, Grid } from "@react-three/drei";
-import { Cpu, Gamepad2 } from "lucide-react";
+import { Cpu, Gamepad2, Settings2 } from "lucide-react";
 import "./App.css";
 import DataSidebar from "./components/DataSidebar";
 import FingerModel from "./components/FingerModel";
@@ -16,7 +16,8 @@ export default function FingerDashboard() {
   });
 
   const [isSimulating, setIsSimulating] = useState(false);
-  const [manualMode, setManualMode] = useState(false);
+  const [controlMode, setControlMode] = useState("myo"); // 'ui', 'myo', 'fsr'
+
   const [activeKeys, setActiveKeys] = useState({
     up: false,
     down: false,
@@ -42,9 +43,17 @@ export default function FingerDashboard() {
     return () => socket.current.close();
   }, []);
 
-  // Keyboard Event Listeners
+  const handleModeChange = (newMode) => {
+    setControlMode(newMode);
+    setIsSimulating(false);
+    if (socket.current && socket.current.readyState === WebSocket.OPEN) {
+      socket.current.send(JSON.stringify({ type: "set_mode", mode: newMode }));
+    }
+  };
+
+  // Keyboard Event Listeners (Only active if controlMode === 'ui')
   useEffect(() => {
-    if (!manualMode) return;
+    if (controlMode !== "ui") return;
 
     const handleKeyDown = (e) => {
       let key = null;
@@ -55,7 +64,6 @@ export default function FingerDashboard() {
 
       if (key && !activeKeys[key]) {
         setActiveKeys((prev) => ({ ...prev, [key]: true }));
-        // Send command to Python: { type: "manual", motor: 1 or 2, direction: "pos" or "neg" }
         const motor = key === "up" || key === "down" ? 1 : 2;
         const dir = key === "up" || key === "right" ? "forward" : "backward";
         socket.current.send(
@@ -86,12 +94,12 @@ export default function FingerDashboard() {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [manualMode, activeKeys]);
+  }, [controlMode, activeKeys]);
 
-  // Simulation Logic (Unchanged but wrapped in manual check)
+  // Simulation Logic
   useEffect(() => {
     let interval;
-    if (isSimulating && !manualMode) {
+    if (isSimulating && controlMode === "ui") {
       interval = setInterval(() => {
         const time = Date.now() * 0.002;
         setData((prev) => ({
@@ -110,7 +118,7 @@ export default function FingerDashboard() {
       }, 50);
     }
     return () => clearInterval(interval);
-  }, [isSimulating, manualMode]);
+  }, [isSimulating, controlMode]);
 
   return (
     <div className="dashboard-root">
@@ -130,38 +138,64 @@ export default function FingerDashboard() {
               gap: "8px",
               margin: 0,
               fontSize: "20px",
+              marginBottom: "15px",
             }}
           >
             <Cpu color="#60a5fa" /> FINGER MODEL
           </h1>
-          <div style={{ display: "flex", gap: "10px" }}>
+          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "#1e293b",
+                padding: "8px 12px",
+                borderRadius: "8px",
+                border: "1px solid #334155",
+              }}
+            >
+              <Settings2
+                size={16}
+                color="#94a3b8"
+                style={{ marginRight: "8px" }}
+              />
+              <select
+                value={controlMode}
+                onChange={(e) => {
+                  handleModeChange(e.target.value);
+                  e.target.blur();
+                }}
+                style={{
+                  background: "transparent",
+                  color: "#94a3b8",
+                  border: "none",
+                  outline: "none",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                }}
+              >
+                <option value="ui">Arrow keys</option>
+                <option value="fsr">FSR sensor</option>
+                <option value="myo">Myo band</option>
+              </select>
+            </div>
+
             <button
               onClick={() => setIsSimulating(!isSimulating)}
-              disabled={manualMode}
+              disabled={controlMode !== "ui"}
               className="btn-primary"
               style={{
                 backgroundColor: isSimulating ? "#ef4444" : "#10b981",
-                opacity: manualMode ? 0.5 : 1,
+                opacity: controlMode !== "ui" ? 0.5 : 1,
               }}
             >
               {isSimulating ? "STOP SIM" : "TEST MODE"}
             </button>
-            <button
-              onClick={() => {
-                setManualMode(!manualMode);
-                setIsSimulating(false);
-              }}
-              className="btn-primary"
-              style={{ backgroundColor: manualMode ? "#f59e0b" : "#6366f1" }}
-            >
-              <Gamepad2 size={14} style={{ marginRight: "5px" }} />
-              {manualMode ? "DISABLE MANUAL" : "ENABLE MANUAL"}
-            </button>
           </div>
         </div>
 
-        {/* Manual Control Visualizer Overlay */}
-        {manualMode && <ControlOverlay activeKeys={activeKeys} />}
+        {/* Manual Control Visualizer Overlay - Only show if UI mode is active */}
+        {controlMode === "ui" && <ControlOverlay activeKeys={activeKeys} />}
 
         <div className="canvas-wrapper">
           <Canvas camera={{ position: [3, 3, 3], fov: 30 }}>

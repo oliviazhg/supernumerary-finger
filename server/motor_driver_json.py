@@ -91,6 +91,13 @@ def on_message(client, userdata, msg):
         payload = json.loads(msg.payload.decode())
         
         target_id = int(payload['id'])
+        mode = payload.get('mode', 'move')
+        
+        if mode == "stop":
+            print(f"UI Command: Stopping Motor {target_id}")
+            stop_motor(target_id)
+            return
+
         target_position = int(payload['position'])
         
         print(f"motor id: {target_id}, position: {target_position}")

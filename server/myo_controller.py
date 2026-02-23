@@ -10,6 +10,9 @@ MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
 MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
 
 TOPIC_MOTOR = "motor/command"
+TOPIC_SYS_MODE = "system/control_mode"
+
+current_mode = "ui" 
 
 def classifier_worker(shared_position):
     """
@@ -22,7 +25,14 @@ def classifier_worker(shared_position):
     except Exception as e:
         print(f"[Classifier Worker] Error: {e}")
 
+def on_message(client, userdata, msg):
+    global current_mode
+    if msg.topic == TOPIC_SYS_MODE:
+        current_mode = msg.payload.decode()
+        print(f"[Myo] current mode changed to: {current_mode}")
+
 def main():
+    global current_mode
     # Create shared value for hand position
     # 'i' = signed integer, initial value = 0 (Relaxed)
     hand_position = multiprocessing.Value('i', 0)
@@ -45,7 +55,12 @@ def main():
         print("Server ready!\n")
         
         client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+        client.on_message = on_message # Attach callback
+        
         client.connect(MQTT_BROKER, MQTT_PORT, 60)
+        client.subscribe(TOPIC_SYS_MODE) # Listen for mode changes
+        client.loop_start() # Runs a background thread to process incoming MQTT messages
+        
         print(f"Connected to MQTT")
 
         last_state = -1
@@ -65,15 +80,20 @@ def main():
                     m2_target = 3000
                     state_name = "OPEN (RELAXED)"
                 
-                # motor 1
-                payload1 = {"id": 1, "position": m1_target}
-                client.publish(TOPIC_MOTOR, json.dumps(payload1))
+                # Only execute if Myo is the active mode
+                if current_mode == "myo":
+                    # motor 1
+                    payload1 = {"id": 1, "position": m1_target}
+                    client.publish(TOPIC_MOTOR, json.dumps(payload1))
 
-                # motor 2
-                payload2 = {"id": 2, "position": m2_target}
-                client.publish(TOPIC_MOTOR, json.dumps(payload2))
+                    # motor 2
+                    payload2 = {"id": 2, "position": m2_target}
+                    client.publish(TOPIC_MOTOR, json.dumps(payload2))
 
-                print(f"State: {state_name} -> Sending M1:{m1_target}, M2:{m2_target}")
+                    print(f"State: {state_name} -> Sending M1:{m1_target}, M2:{m2_target}")
+                else:
+                    print(f"Myo triggered '{state_name}', but mode is '{current_mode}'. Ignored.")
+
                 last_state = current_state
 
             # fast polling
@@ -93,6 +113,7 @@ def main():
                 print("Force killing classifier process...")
                 classifier_process.kill()
         if client:
+            client.loop_stop()
             client.disconnect()
 
 if __name__ == "__main__":

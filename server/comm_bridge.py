@@ -11,9 +11,12 @@ MQTT_PORT   = int(os.getenv("MQTT_PORT", 0))
 TOPIC_MODE = "fsr/mode"
 TOPIC_FINGER = 'fsr/finger'
 TOPIC_MOTOR  = "motor/command"
+TOPIC_SYS_MODE = "system/control_mode"
 
 system_active = False
 last_finger_state = None
+
+current_mode = "myo" 
 
 def send_motor_command(client, m1_position, m2_position):
     payload1 = {"id": 1, "position": m1_position}
@@ -22,40 +25,50 @@ def send_motor_command(client, m1_position, m2_position):
     payload2 = {"id": 2, "position": m2_position}
     client.publish(TOPIC_MOTOR, json.dumps(payload2))
     
-    print(f"setting positions: motor 1: {m1_position}, motor 2: {m2_position}")
+    print(f"[FSR Executing] motor 1: {m1_position}, motor 2: {m2_position}")
 
 def on_message(client, userdata, msg):
-    global system_active, last_finger_state
+    global system_active, last_finger_state, current_mode
     payload = msg.payload.decode()
-    
+
+    if msg.topic == TOPIC_SYS_MODE:
+        current_mode = payload
+        print(f"current mode changed to: {current_mode}")
+        return
+
     # activate/deactivate
     if msg.topic == TOPIC_MODE:
         if payload == "1":
             system_active = True
-            print("SYSTEM ACTIVATED")
+            print("FSR SENSOR ACTIVATED")
         else:
             system_active = False
             last_finger_state = None
-            print("SYSTEM DEACTIVATED")
+            print("FSR SENSOR DEACTIVATED")
             
     # move finger
     elif msg.topic == TOPIC_FINGER:
         if system_active:
-            # only send motor command if the state changed
             if payload != last_finger_state:
-                if payload == "close":
-                    send_motor_command(client, -1000, 7000)
-                elif payload == "open":
-                    send_motor_command(client, -1000, 3000)
+                
+                # Only execute if FSR is the active mode
+                if current_mode == "fsr":
+                    if payload == "close":
+                        send_motor_command(client, -1000, 7000)
+                    elif payload == "open":
+                        send_motor_command(client, -1000, 3000)
+                else:
+                    print(f"FSR triggered '{payload}', but current mode is '{current_mode}'. Ignored.")
 
                 last_finger_state = payload
-                print(f"state Changed to: {payload}")
+                print(f"FSR state Changed to: {payload}")
 
 client = mqtt.Client()
 client.connect(MQTT_BROKER, MQTT_PORT, 60)
 
 client.on_message = on_message
-client.subscribe([(TOPIC_MODE, 0), (TOPIC_FINGER, 0)])
+# Subscribe to the new system mode topic as well
+client.subscribe([(TOPIC_MODE, 0), (TOPIC_FINGER, 0), (TOPIC_SYS_MODE, 0)])
 
 print("Connected to MQTT")
 print("Started... listening for sensors")
