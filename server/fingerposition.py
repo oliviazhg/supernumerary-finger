@@ -121,7 +121,7 @@ class WindowedClassifier(Live_Classifier):
             x = np.array(emg).reshape(1, -1)
 
         try:
-            pred = self.model.predict(x)
+            pred = self.model.predict(np.abs(x))
             return int(pred[0])
         except:
             return 0
@@ -131,6 +131,9 @@ class WindowedEMGHandler(EMGHandler):
     '''EMG handler that updates the global position tracker'''
 
     def __call__(self, emg, moving):
+        # Rectify (full-wave) before storing — consistent with classification preprocessing
+        emg = tuple(np.abs(emg))
+
         # Store training data if in recording mode
         if self.recording >= 0:
             self.m.cls.store_data(self.recording, emg)
