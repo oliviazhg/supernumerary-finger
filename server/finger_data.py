@@ -25,15 +25,20 @@ async def handle_connection(websocket):
         try:
             while True:
                 t = time.time()
+                
+                base_sweep_factor = math.sin(t * 0.5) * 0.5 + 0.5
+                curl_factor = math.sin(t) * 0.5 + 0.5
+
                 payload = {
                     "angles": {
-                        "j1": math.sin(t * 1.5) * 0.6,
-                        "j2": math.sin(t * 1.2) * 0.8,
-                        "j3": math.sin(t * 0.9) * 0.4 
+                        "base": base_sweep_factor,
+                        "j1": curl_factor * 1.2,
+                        "j2": curl_factor * 1.5,
+                        "j3": curl_factor * 1.0 
                     },
                     "sensors": {
-                        "flex": int(45 + math.sin(t) * 20),
-                        "force": round(2.0 + math.cos(t) * 1.5, 2)
+                        "flex": int(curl_factor * 90),
+                        "force": round(curl_factor * 5, 2)
                     },
                     "myo": {
                         "emg": [random.randint(10, 90) for _ in range(8)]

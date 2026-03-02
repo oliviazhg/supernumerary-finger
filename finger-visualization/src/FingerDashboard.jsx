@@ -9,7 +9,7 @@ import ControlOverlay from "./components/ControlOverlay";
 
 export default function FingerDashboard() {
   const [data, setData] = useState({
-    angles: { j1: 0, j2: 0, j3: 0 },
+    angles: { base: 0, j1: 0, j2: 0, j3: 0 },
     sensors: { flex: 0, force: 0 },
     myo: { emg: [0, 0, 0, 0, 0, 0, 0, 0] },
     logs: ["Started..."],
@@ -102,16 +102,21 @@ export default function FingerDashboard() {
     if (isSimulating && controlMode === "ui") {
       interval = setInterval(() => {
         const time = Date.now() * 0.002;
+
+        const baseSweepFactor = Math.sin(time * 0.5) * 0.5 + 0.5;
+        const curlFactor = Math.sin(time) * 0.5 + 0.5;
+
         setData((prev) => ({
           ...prev,
           angles: {
-            j1: Math.sin(time) * 0.5,
-            j2: Math.sin(time * 0.8) * 0.7,
-            j3: Math.sin(time * 1.2) * 0.4,
+            base: baseSweepFactor,
+            j1: curlFactor * 1.2,
+            j2: curlFactor * 1.5,
+            j3: curlFactor * 1.0,
           },
           sensors: {
-            flex: Math.floor(Math.random() * 90),
-            force: (Math.random() * 5).toFixed(2),
+            flex: Math.floor(curlFactor * 90),
+            force: (curlFactor * 5).toFixed(2),
           },
           myo: { emg: prev.myo.emg.map(() => Math.floor(Math.random() * 100)) },
         }));
@@ -198,12 +203,22 @@ export default function FingerDashboard() {
         {controlMode === "ui" && <ControlOverlay activeKeys={activeKeys} />}
 
         <div className="canvas-wrapper">
-          <Canvas camera={{ position: [3, 3, 3], fov: 30 }}>
+          <Canvas camera={{ position: [0.3, 0.4, 0.5], fov: 45 }}>
             <Stage environment="city" intensity={0.5} adjustCamera={false}>
-              <FingerModel angles={data.angles} />
+              <FingerModel
+                angles={data.angles}
+                rotation={[-Math.PI / 2, 0, -Math.PI / 2]}
+              />
             </Stage>
             <Grid infiniteGrid sectionColor="#334155" cellColor="#1f2937" />
-            <OrbitControls makeDefault />
+            <OrbitControls
+              makeDefault
+              enablePan={true}
+              panSpeed={2.0}
+              enableDamping={true}
+              dampingFactor={0.05}
+              target={[0, -0.1, 0]}
+            />
           </Canvas>
         </div>
       </div>
