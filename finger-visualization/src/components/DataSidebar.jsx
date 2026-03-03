@@ -4,9 +4,7 @@ export default function DataSidebar({ data }) {
   return (
     <div className="data-sidebar">
       <section className="card">
-        <h3 style={{ color: "#60a5fa", fontSize: "12px" }}>
-          <Activity size={14} /> FINGER SENSORS
-        </h3>
+        <h3 style={{ color: "#60a5fa", fontSize: "12px" }}>FINGER SENSORS</h3>
         <div className="sensor-grid">
           <div className="sensor-box">
             <div style={{ fontSize: "10px", color: "#64748b" }}>FLEX</div>
@@ -24,15 +22,30 @@ export default function DataSidebar({ data }) {
       </section>
 
       <section className="card">
-        <h3 style={{ color: "#34d399", fontSize: "12px" }}>
-          <Zap size={14} /> MYO BAND EMG
-        </h3>
-        <div className="emg-container">
-          {data.myo.emg.map((val, i) => (
-            <div key={i} className="emg-bar-bg">
-              <div className="emg-bar-fill" style={{ height: `${val}%` }} />
-            </div>
-          ))}
+        <h3 style={{ color: "#60a5fa", fontSize: "12px" }}>MYO BAND STATUS</h3>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            padding: "10px 0",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "24px",
+              fontWeight: "bold",
+              letterSpacing: "2px",
+              padding: "10px 20px",
+              borderRadius: "8px",
+              backgroundColor: "rgba(96, 165, 250, 0.2)",
+              border: `1px solid #60a5fa`,
+              minWidth: "120px",
+              textAlign: "center",
+            }}
+          >
+            {data.myo.state || "UNKNOWN"}
+          </div>
         </div>
       </section>
 

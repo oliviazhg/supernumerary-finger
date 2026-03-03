@@ -11,7 +11,7 @@ export default function FingerDashboard() {
   const [data, setData] = useState({
     angles: { base: 0, j1: 0, j2: 0, j3: 0 },
     sensors: { flex: 0, force: 0 },
-    myo: { emg: [0, 0, 0, 0, 0, 0, 0, 0] },
+    myo: { state: "OPEN" },
     logs: ["Started..."],
   });
 
@@ -118,7 +118,7 @@ export default function FingerDashboard() {
             flex: Math.floor(curlFactor * 90),
             force: (curlFactor * 5).toFixed(2),
           },
-          myo: { emg: prev.myo.emg.map(() => Math.floor(Math.random() * 100)) },
+          myo: { state: curlFactor > 0.6 ? "CLOSED" : "OPEN" },
         }));
       }, 50);
     }
@@ -146,7 +146,7 @@ export default function FingerDashboard() {
               marginBottom: "15px",
             }}
           >
-            <Cpu color="#60a5fa" /> FINGER MODEL
+            FINGER MODEL
           </h1>
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <div

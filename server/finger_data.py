@@ -13,8 +13,19 @@ load_dotenv()
 PORT = 8765
 MQTT_BROKER = os.getenv("MQTT_BROKER", "localhost")
 MQTT_TOPIC  = "motor/command"
+TOPIC_MYO_STATE = "sensor/myo/state"
+
+current_myo_state = "UNKNOWN"
+
+def on_mqtt_message(client, userdata, msg):
+    global current_myo_state
+    if msg.topic == TOPIC_MYO_STATE:
+        current_myo_state = msg.payload.decode()
+
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+mqtt_client.on_message = on_mqtt_message
 mqtt_client.connect(MQTT_BROKER, 1883, 60)
+mqtt_client.subscribe(TOPIC_MYO_STATE)
 mqtt_client.loop_start()
 
 async def handle_connection(websocket):
@@ -22,6 +33,7 @@ async def handle_connection(websocket):
     
     # send dummy sensor data to React
     async def send_sensor_data():
+        global current_myo_state
         try:
             while True:
                 t = time.time()
@@ -41,7 +53,7 @@ async def handle_connection(websocket):
                         "force": round(curl_factor * 5, 2)
                     },
                     "myo": {
-                        "emg": [random.randint(10, 90) for _ in range(8)]
+                        "state": current_myo_state
                     }
                 }
                 await websocket.send(json.dumps(payload))

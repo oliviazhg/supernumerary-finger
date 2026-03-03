@@ -11,8 +11,9 @@ MQTT_PORT = int(os.getenv("MQTT_PORT", 1883))
 
 TOPIC_MOTOR = "motor/command"
 TOPIC_SYS_MODE = "system/control_mode"
+TOPIC_MYO_STATE = "sensor/myo/state"
 
-current_mode = "ui" 
+current_mode = "myo" 
 
 def classifier_worker(shared_position):
     """
@@ -75,11 +76,15 @@ def main():
                     m1_target = -1000
                     m2_target = 7000
                     state_name = "CLOSED (FIST)"
+                    ui_state = "CLOSED"
                 else:
                     m1_target = -1000
                     m2_target = 3000
                     state_name = "OPEN (RELAXED)"
-                
+                    ui_state = "OPEN"
+
+                client.publish(TOPIC_MYO_STATE, ui_state)
+
                 # Only execute if Myo is the active mode
                 if current_mode == "myo":
                     # motor 1
