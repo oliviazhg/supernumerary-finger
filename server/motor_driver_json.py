@@ -113,11 +113,11 @@ def on_message(client, userdata, msg):
 
         # define physical bounds
         if target_id == 1:
-            if target_position < -1000: target_position = -1000
+            if target_position < -1100: target_position = -1100
             if target_position > 150: target_position = 150
         if target_id == 2:
             if target_position < 4000: target_position = 4000
-            if target_position > 8000: target_position = 8000
+            if target_position > 8300: target_position = 8300
 
         move_motor(target_id, target_position)
         

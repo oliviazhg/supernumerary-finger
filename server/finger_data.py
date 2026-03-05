@@ -63,11 +63,11 @@ async def handle_connection(websocket):
         global current_myo_state, system_logs, live_m1_pos, live_m2_pos
         try:
             while True:
-                # Motor 1: Resting at 150 (0.0), Sweep to -1000 (1.0)
-                base_sweep_factor = map_range(live_m1_pos, 150, -1000, 0.0, 1.0)
+                # Motor 1: Resting at 150 (0.0), Sweep to -1100 (1.0)
+                base_sweep_factor = map_range(live_m1_pos, 150, -1100, 0.0, 1.0)
                 
-                # Motor 2: Resting at 4000 (0.0), Curl to 8000 (1.0)
-                curl_factor = map_range(live_m2_pos, 4000, 8000, 0.0, 1.0)
+                # Motor 2: Resting at 4000 (0.0), Curl to 8300 (1.0)
+                curl_factor = map_range(live_m2_pos, 4000, 8300, 0.0, 1.0)
 
                 payload = {
                     "angles": {
@@ -84,6 +84,7 @@ async def handle_connection(websocket):
                         "state": current_myo_state
                     },
                     "logs": system_logs
+                    # "logs": [f'motor 1: {live_m1_pos}', f'motor 2: {live_m2_pos}']
                 }
                 await websocket.send(json.dumps(payload))
                 await asyncio.sleep(0.02)
@@ -110,9 +111,9 @@ async def handle_connection(websocket):
                         # Forward = Max Position, Backward = Min Position
                         target_pos = 0
                         if motor_id == 1:
-                            target_pos = 150 if direction == "forward" else -1000
+                            target_pos = 150 if direction == "forward" else -1100
                         elif motor_id == 2:
-                            target_pos = 8000 if direction == "forward" else 4000
+                            target_pos = 8300 if direction == "forward" else 4000
 
                         mqtt_payload = {
                             "id": motor_id, 
