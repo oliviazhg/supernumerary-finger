@@ -101,7 +101,7 @@ def main():
                     client.publish(TOPIC_MOTOR, json.dumps({"id": 1, "position": m1_target}))
                     client.publish(TOPIC_MOTOR, json.dumps({"id": 2, "position": active_target_m2}))
                     print(f"State: {state_name} -> Sending M1:{m1_target}, M2:{active_target_m2}")
-                    client.publish(TOPIC_LOGS, f"[Myo] Executing: {state_name}")
+                    client.publish(TOPIC_LOGS, f"[Myo] Executing: {ui_state}")
                 else:
                     print(f"Myo triggered '{state_name}', but mode is '{current_mode}'. Ignored.")
 

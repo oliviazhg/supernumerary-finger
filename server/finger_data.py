@@ -15,7 +15,9 @@ TOPIC_MYO_STATE = "sensor/myo/state"
 TOPIC_LOGS = "system/logs"
 TOPIC_TELEMETRY = "motor/telemetry"
 TOPIC_HARDWARE_SENSORS = "sensor/hardware_telemetry"
+TOPIC_SYS_MODE = "system/control_mode"
 
+current_sys_mode = "myo"
 current_myo_state = "UNKNOWN"
 system_logs = ["Starting..."]
 LOGS_LENGTH = 30
@@ -32,7 +34,7 @@ def map_range(x, in_min, in_max, out_min, out_max):
     return (clamped_x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def on_mqtt_message(client, userdata, msg):
-    global current_myo_state, system_logs, live_m1_pos, live_m2_pos, live_fsr, live_imu
+    global current_myo_state, current_sys_mode, system_logs, live_m1_pos, live_m2_pos, live_fsr, live_imu
     
     if msg.topic == TOPIC_MYO_STATE:
         current_myo_state = msg.payload.decode()
@@ -60,11 +62,13 @@ def on_mqtt_message(client, userdata, msg):
                 live_imu = data["imu"]
         except json.JSONDecodeError:
             pass
+    elif msg.topic == TOPIC_SYS_MODE:
+        current_sys_mode = msg.payload.decode()
 
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqtt_client.on_message = on_mqtt_message
 mqtt_client.connect(MQTT_BROKER, 1883, 60)
-mqtt_client.subscribe([(TOPIC_MYO_STATE, 0), (TOPIC_LOGS, 0), (TOPIC_TELEMETRY, 0), (TOPIC_HARDWARE_SENSORS, 0)]) 
+mqtt_client.subscribe([(TOPIC_MYO_STATE, 0), (TOPIC_LOGS, 0), (TOPIC_TELEMETRY, 0), (TOPIC_HARDWARE_SENSORS, 0), (TOPIC_SYS_MODE, 0)])
 mqtt_client.loop_start()
 
 async def handle_connection(websocket):
@@ -95,6 +99,7 @@ async def handle_connection(websocket):
                     "myo": {
                         "state": current_myo_state
                     },
+                    "system": { "mode": current_sys_mode },
                     "logs": system_logs
                 }
                 await websocket.send(json.dumps(payload))
@@ -149,7 +154,7 @@ async def handle_connection(websocket):
                 elif command.get("type") == "set_mode":
                     new_mode = command.get("mode")
                     print(f"Control mode changed to: {new_mode}")
-                    mqtt_client.publish("system/control_mode", new_mode)
+                    mqtt_client.publish(TOPIC_SYS_MODE, new_mode)
                     mqtt_client.publish(TOPIC_LOGS, f"[System] Mode changed to {new_mode.upper()}")
                 
         except websockets.exceptions.ConnectionClosed:
