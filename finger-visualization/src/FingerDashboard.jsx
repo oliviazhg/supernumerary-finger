@@ -16,7 +16,7 @@ export default function FingerDashboard() {
       motors: [150, 4000],
     },
     myo: { state: "UNKNOWN" },
-    system: { mode: "myo" },
+    // system: { mode: "myo" },
     logs: ["Started..."],
   });
 
@@ -31,11 +31,11 @@ export default function FingerDashboard() {
   });
   const socket = useRef(null);
 
-  useEffect(() => {
-    if (data.system.mode !== controlMode) {
-      setControlMode(data.system.mode);
-    }
-  }, [data.system.mode]);
+  // useEffect(() => {
+  //   if (data.system.mode !== controlMode) {
+  //     setControlMode(data.system.mode);
+  //   }
+  // }, [data.system.mode]);
 
   // WebSocket Logic
   useEffect(() => {

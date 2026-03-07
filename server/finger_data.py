@@ -62,8 +62,8 @@ def on_mqtt_message(client, userdata, msg):
                 live_imu = data["imu"]
         except json.JSONDecodeError:
             pass
-    elif msg.topic == TOPIC_SYS_MODE:
-        current_sys_mode = msg.payload.decode()
+    # elif msg.topic == TOPIC_SYS_MODE:
+    #     current_sys_mode = msg.payload.decode()
 
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqtt_client.on_message = on_mqtt_message
@@ -99,7 +99,7 @@ async def handle_connection(websocket):
                     "myo": {
                         "state": current_myo_state
                     },
-                    "system": { "mode": current_sys_mode },
+                    # "system": { "mode": current_sys_mode },
                     "logs": system_logs
                 }
                 await websocket.send(json.dumps(payload))

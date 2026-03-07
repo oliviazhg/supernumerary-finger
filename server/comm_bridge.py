@@ -29,10 +29,10 @@ def on_message(client, userdata, msg):
         return
 
     # Handle triple tap (mode toggle between myo and fsr)
-    if msg.topic == TOPIC_TOGGLE:
-        new_mode = "fsr" if current_mode == "myo" else "myo"
-        client.publish(TOPIC_SYS_MODE, new_mode)
-        client.publish(TOPIC_LOGS, f"[Hardware] Triple-Tap: Mode switched to {new_mode.upper()}")
+    # if msg.topic == TOPIC_TOGGLE:
+    #     new_mode = "fsr" if current_mode == "myo" else "myo"
+    #     client.publish(TOPIC_SYS_MODE, new_mode)
+    #     client.publish(TOPIC_LOGS, f"[Hardware] Triple-Tap: Mode switched to {new_mode.upper()}")
       
     elif msg.topic == TOPIC_FINGER:
         if current_mode == "fsr":
