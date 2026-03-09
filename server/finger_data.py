@@ -97,7 +97,7 @@ async def handle_connection(websocket):
                     },
                     "sensors": {
                         "fsr": live_fsr,
-                        "imu": [curl_factor * 0.45, curl_factor * 0.9, curl_factor * 0.8],
+                        "imu": [0,0,0],
                         "toe_fsr": live_toe_fsr,
                         "motors": [live_m1_pos, live_m2_pos]
                     },
