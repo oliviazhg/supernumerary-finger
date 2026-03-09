@@ -25,7 +25,7 @@ CATEGORY_MAP = {
 
 live_fsr_value = 0
 FSR_TARGET_FORCE = 80
-current_mode = "myo" 
+current_mode = "ui" 
 
 def classifier_worker(shared_position):
     """

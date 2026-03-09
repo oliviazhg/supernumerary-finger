@@ -5,6 +5,7 @@ import os
 import paho.mqtt.client as mqtt
 from datetime import datetime
 from dotenv import load_dotenv
+import time
 
 load_dotenv()
 
@@ -17,7 +18,7 @@ TOPIC_TELEMETRY = "motor/telemetry"
 TOPIC_HARDWARE_SENSORS = "sensor/hardware_telemetry"
 TOPIC_SYS_MODE = "system/control_mode"
 
-current_sys_mode = "myo"
+current_sys_mode = "ui"
 current_myo_state = "UNKNOWN"
 system_logs = ["Starting..."]
 LOGS_LENGTH = 30
@@ -27,6 +28,7 @@ live_m1_pos = 150
 live_m2_pos = 4000
 live_fsr = [0, 0, 0]
 live_imu = [0, 0, 0]
+live_toe_fsr = [0, 0]
 
 def map_range(x, in_min, in_max, out_min, out_max):
     """Maps a number from one range to another, with strict clamping"""
@@ -34,7 +36,7 @@ def map_range(x, in_min, in_max, out_min, out_max):
     return (clamped_x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
 
 def on_mqtt_message(client, userdata, msg):
-    global current_myo_state, current_sys_mode, system_logs, live_m1_pos, live_m2_pos, live_fsr, live_imu
+    global current_myo_state, current_sys_mode, system_logs, live_m1_pos, live_m2_pos, live_fsr, live_imu, live_toe_fsr
     
     if msg.topic == TOPIC_MYO_STATE:
         current_myo_state = msg.payload.decode()
@@ -60,6 +62,8 @@ def on_mqtt_message(client, userdata, msg):
                 live_fsr = data["fsr"]
             if "imu" in data:
                 live_imu = data["imu"]
+            if "toe_fsr" in data:
+                live_toe_fsr = data["toe_fsr"]
         except json.JSONDecodeError:
             pass
     # elif msg.topic == TOPIC_SYS_MODE:
@@ -79,10 +83,10 @@ async def handle_connection(websocket):
         try:
             while True:
                 # Motor 1: Resting at 150 (0.0), Sweep to -1100 (1.0)
-                base_sweep_factor = map_range(live_m1_pos, 150, -1100, 0.0, 1.0)
+                base_sweep_factor = map_range(live_m1_pos, 4300, 3000, 0.0, 1.0)
                 
                 # Motor 2: Resting at 4000 (0.0), Curl to 8400 (1.0)
-                curl_factor = map_range(live_m2_pos, 4000, 8400, 0.0, 1.0)
+                curl_factor = map_range(live_m2_pos, 3000, 6900, 0.0, 1.0)
 
                 payload = {
                     "angles": {
@@ -93,17 +97,19 @@ async def handle_connection(websocket):
                     },
                     "sensors": {
                         "fsr": live_fsr,
-                        "imu": live_imu,
+                        "imu": [curl_factor * 0.45, curl_factor * 0.9, curl_factor * 0.8],
+                        "toe_fsr": live_toe_fsr,
                         "motors": [live_m1_pos, live_m2_pos]
                     },
                     "myo": {
                         "state": current_myo_state
                     },
                     # "system": { "mode": current_sys_mode },
-                    "logs": system_logs
+                    "logs": system_logs,
+                    "timestamp": int(time.time() * 1000)
                 }
                 await websocket.send(json.dumps(payload))
-                await asyncio.sleep(0.02)
+                await asyncio.sleep(0.03)
         except websockets.exceptions.ConnectionClosed:
             pass
 
@@ -127,9 +133,9 @@ async def handle_connection(websocket):
                         # Forward = Max Position, Backward = Min Position
                         target_pos = 0
                         if motor_id == 1:
-                            target_pos = 150 if direction == "forward" else -1100
+                            target_pos = 3000 if direction == "forward" else 4300
                         elif motor_id == 2:
-                            target_pos = 8400 if direction == "forward" else 4000
+                            target_pos = 6900 if direction == "forward" else 3000
 
                         mqtt_payload = {
                             "id": motor_id, 
@@ -150,6 +156,26 @@ async def handle_connection(websocket):
 
                     if mqtt_payload:
                         mqtt_client.publish(MQTT_TOPIC, json.dumps(mqtt_payload))
+
+                elif command.get("type") == "set_position":
+                    motor_id = command.get("motor")
+                    target_pos = command.get("position")
+                    
+                    try:
+                        motor_id = int(motor_id)
+                        target_pos = int(target_pos)
+                        
+                        mqtt_payload = {
+                            "id": motor_id, 
+                            "mode": "move", 
+                            "position": target_pos
+                        }
+                        
+                        mqtt_client.publish(TOPIC_LOGS, f"[UI] Motor {motor_id} -> {target_pos}")
+                        mqtt_client.publish(MQTT_TOPIC, json.dumps(mqtt_payload))
+                        
+                    except (ValueError, TypeError):
+                        print("Invalid position received.")
 
                 elif command.get("type") == "set_mode":
                     new_mode = command.get("mode")

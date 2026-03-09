@@ -14,7 +14,7 @@ TOPIC_MOTOR  = "motor/command"
 TOPIC_SYS_MODE = "system/control_mode"
 TOPIC_LOGS = "system/logs"
 
-current_mode = "myo" 
+current_mode = "ui" 
 
 def send_motor_command(client, m1_position, m2_position):
     client.publish(TOPIC_MOTOR, json.dumps({"id": 1, "position": m1_position}))
@@ -38,6 +38,7 @@ def on_message(client, userdata, msg):
         if current_mode == "fsr":
             try:
                 data = json.loads(payload)
+                # print(f"[fsr] {data}")
                 send_motor_command(client, data["m1"], data["m2"])
             except (json.JSONDecodeError, KeyError):
                 pass

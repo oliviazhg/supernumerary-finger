@@ -18,7 +18,7 @@ TOPIC_TELEMETRY = "motor/telemetry"
 DXL_ID_1 = 1
 DXL_ID_2 = 2
 BAUDRATE = 1000000
-DEVICENAME = 'COM3' # /dev/ttyUSB0 on Pi
+DEVICENAME = 'COM7'
 PROTOCOL_VERSION = 2.0
 
 ADDR_OPERATING_MODE = 11
@@ -109,15 +109,15 @@ def on_message(client, userdata, msg):
 
         target_position = int(payload['position'])
         
-        print(f"motor id: {target_id}, position: {target_position}")
+        # print(f"motor id: {target_id}, position: {target_position}")
 
         # define physical bounds
         if target_id == 1:
-            if target_position < -1100: target_position = -1100
-            if target_position > 150: target_position = 150
+            if target_position < 3000: target_position = 3000
+            if target_position > 4300: target_position = 4300
         if target_id == 2:
-            if target_position < 4000: target_position = 4000
-            if target_position > 8400: target_position = 8400
+            if target_position < 3000: target_position = 3000
+            if target_position > 6900: target_position = 6900
 
         move_motor(target_id, target_position)
         
