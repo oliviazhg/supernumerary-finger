@@ -15,7 +15,8 @@ MQTT_TOPIC  = "motor/command"
 TOPIC_MYO_STATE = "sensor/myo/state"
 TOPIC_LOGS = "system/logs"
 TOPIC_TELEMETRY = "motor/telemetry"
-TOPIC_HARDWARE_SENSORS = "sensor/hardware_telemetry"
+TOPIC_HARDWARE_SENSORS = "sensor/hardware_telemetry" # Toe ESP32
+TOPIC_TELEMETRY_FINGER = "sensor/hardware_telemetry1" # Finger ESP32
 TOPIC_SYS_MODE = "system/control_mode"
 
 current_sys_mode = "ui"
@@ -58,12 +59,17 @@ def on_mqtt_message(client, userdata, msg):
     elif msg.topic == TOPIC_HARDWARE_SENSORS:
         try:
             data = json.loads(msg.payload.decode())
+            if "toe_fsr" in data:
+                live_toe_fsr = data["toe_fsr"]
+        except json.JSONDecodeError:
+            pass
+    elif msg.topic == TOPIC_TELEMETRY_FINGER:
+        try:
+            data = json.loads(msg.payload.decode())
             if "fsr" in data:
                 live_fsr = data["fsr"]
             if "imu" in data:
                 live_imu = data["imu"]
-            if "toe_fsr" in data:
-                live_toe_fsr = data["toe_fsr"]
         except json.JSONDecodeError:
             pass
     # elif msg.topic == TOPIC_SYS_MODE:
@@ -72,7 +78,14 @@ def on_mqtt_message(client, userdata, msg):
 mqtt_client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqtt_client.on_message = on_mqtt_message
 mqtt_client.connect(MQTT_BROKER, 1883, 60)
-mqtt_client.subscribe([(TOPIC_MYO_STATE, 0), (TOPIC_LOGS, 0), (TOPIC_TELEMETRY, 0), (TOPIC_HARDWARE_SENSORS, 0), (TOPIC_SYS_MODE, 0)])
+mqtt_client.subscribe([
+    (TOPIC_MYO_STATE, 0),
+    (TOPIC_LOGS, 0),
+    (TOPIC_TELEMETRY, 0),
+    (TOPIC_HARDWARE_SENSORS, 0),
+    (TOPIC_SYS_MODE, 0),
+    (TOPIC_TELEMETRY_FINGER, 0)
+])
 mqtt_client.loop_start()
 
 async def handle_connection(websocket):

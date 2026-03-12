@@ -413,7 +413,7 @@ export default function FingerDashboard() {
           <div>
             UPDATE RATE:{" "}
             <span
-              style={{ color: "#34d399", fontSize: "13px", fontWeight: "bold" }}
+              style={{ color: "#60a5fa", fontSize: "13px", fontWeight: "bold" }}
             >
               {metrics.delta}
             </span>{" "}

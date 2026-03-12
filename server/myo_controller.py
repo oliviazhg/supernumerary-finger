@@ -32,7 +32,7 @@ def on_message(client, userdata, msg):
             if predicted_class == "rest":
                 m1, m2 = 4300, 4000
             elif predicted_class == "palm":
-                m1, m2 = 4000, 4000
+                m1, m2 = 3500, 4000
             elif predicted_class == "cylindrical":
                 m1, m2 = 3000, 6400
             elif predicted_class == "lateral":
